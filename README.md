@@ -1,7 +1,34 @@
 # datastore
+## Overview
+datastore is a simple method for storing data that has been normalized by an LLM, then calling a database of matches prior to querying the LLM.
+
+For example, I would like to clean this input, so it matches the title naming convention in my CRM.
+
+Input:
+```
+[
+  {
+    "job title": "director, it"
+  }
+]
+```
+
+I can run this title through an LLM to normalize it to `Director of IT`. But if another record in our CRM has the same title, I don't want to waste money running the record again. We solve this with datastore's matching database, storing values like this:
+```
+[
+  {
+    "original": "director, it",
+    "normalized": "Director of IT"
+  }
+]
+```
+
+Calling the matching database prior to engaging the LLM keeps costs down and ensures more predictable outputs.
+
+## Setup
 Follow these steps to install this project in Google Sheets + n8n
 
-## Sheets
+### Sheets
 1. Upload the sheets.xlsx file to your google drive & convert to sheets format
 2. In the menu bar, select Extensions → Apps Script
 3. Copy the Code.gs javascript into your pre-populated Code.gs file
@@ -18,7 +45,7 @@ Follow these steps to install this project in Google Sheets + n8n
 
 Your sheet will now trigger the webhook when you make edits to column C.
 
-## n8n
+### n8n
 1. Create a new n8n project
 2. Upload the json file
 3. Copy your webhook url

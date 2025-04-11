@@ -1,0 +1,998 @@
+{
+  "name": "My workflow 2",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "your-webhook-path",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -1260,
+        240
+      ],
+      "id": "02dd0fe0-a04a-4843-8496-023a70cda458",
+      "name": "Webhook",
+      "webhookId": "9a76d06f-e04c-43c4-8c05-5eea56053039"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "advanced": true,
+        "mergeByFields": {
+          "values": [
+            {
+              "field1": "Title",
+              "field2": "original"
+            }
+          ]
+        },
+        "joinMode": "keepEverything",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.1,
+      "position": [
+        -380,
+        240
+      ],
+      "id": "426899e9-a632-41d0-87fd-07c195d18d23",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "documentId": {
+          "__rl": true,
+          "value": "12LWvPBAUAiwFGaxq5e_y9iLjZWMwxb3UgR8ABnezOR0",
+          "mode": "list",
+          "cachedResultName": "Data Normalization",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/12LWvPBAUAiwFGaxq5e_y9iLjZWMwxb3UgR8ABnezOR0/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Title Normalizer",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/12LWvPBAUAiwFGaxq5e_y9iLjZWMwxb3UgR8ABnezOR0/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        -600,
+        320
+      ],
+      "id": "ae0ed46d-8932-4e10-8825-2b749c5685c0",
+      "name": "titleCheck",
+      "executeOnce": true,
+      "credentials": {
+        "googleApi": {
+          "id": "<your_google_api>",
+          "name": "Google Sheets account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "[\n  {\n    \"original\": \"Restaurant-Bar & Café\",\n    \"normalized\": \"Restaurants\",\n    \"matchConfidence\": \"High\"\n  },\n  {\n    \"original\": \"Health & Wellness\",\n    \"normalized\": \"Healthcare\",\n    \"matchConfidence\": \"High\"\n  },\n  {\n    \"original\": \"storage\",\n    \"normalized\": \"No match\",\n    \"matchConfidence\": \"None\"\n  }\n]"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        440,
+        600
+      ],
+      "id": "3d827c51-55eb-43da-8121-ec96b467fe3c",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "claude-3-7-sonnet-20250219",
+          "cachedResultName": "Claude 3.7 Sonnet"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.3,
+      "position": [
+        320,
+        600
+      ],
+      "id": "6a840e63-338f-4a58-a1fd-001b9cbdb040",
+      "name": "Anthropic Chat Model",
+      "credentials": {
+        "anthropicApi": {
+          "id": "<your_anthropic_api>",
+          "name": "Anthropic account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are an AI assistant tasked with job titles in a CRM. You will be given a spec for output format and a non-normalized title to modify for that spec. Your goal is to update the title so it can be used by other systems and automations. You will use natural language understanding and logic to accomplish this task.\n\nFirst, here is the example list (or \"spec\") of titles. Ensure they follow conventions in these examples.\nNote that for leadership roles (such as \"Manager\" or \"VP\") the level is at the beginning of the title, while individual contributor roles (like \"Analyst\") have the level at the end of the title:\n<title_examples>\n- Manager of IT\n- Senior Manager of IT\n- Manager of IT and Security\n- VP of IT\n- CISO\n- Sysadmin\n- Information Security Analyst\n- Security Engineer\n- Security Architect\n</title_examples>\n\nNow, here is the original title that needs to be normalized:\n<original_category>\n{{$json.original}}\n</original_category>\n\nPlease follow these steps to analyze and normalize the title:\n\n1. Carefully examine the original title name and compare it to the syntax and structure of the examples above.\n2. Look for semantic similarities, not just exact matches. Consider synonyms, related concepts, and broader/narrower terms.\n3. If you normalize a title, determine how confident you are in the match (High, Medium, or Low).\n4. If you aren't able to normalize, it's okay to indicate that no normalization was possible.\n\nProvide your answer in the following JSON format:\n<output>\n{\n\"original\": \"The original title\",\n\"normalized\": \"The normalized title (or 'No match' if none found)\",\n\"outputConfidence\": \"High/Medium/Low (or 'None' if you couldn't normalize)\"\n}\n</output>\n\n<examples>\n[\n  {\n    \"original\": \"\",\n    \"normalized\": \"No output\",\n    \"outputConfidence\": \"None\"\n  },\n  {\n    \"original\": \"Dir. Infosec\",\n    \"normalized\": \"Director of Information Security\",\n    \"outputConfidence\": \"High\"\n  },\n  {\n    \"original\": \"Chief Information Security Officer\",\n    \"normalized\": \"CISO\",\n    \"outputConfidence\": \"High\"\n  },\n  {\n    \"original\": \"VP of IT & Chief Information Security Officer\",\n    \"normalized\": \"VP of IT and CISO\",\n    \"outputConfidence\": \"High\"\n  },\n  {\n    \"original\": \"Security Operations Manager\",\n    \"normalized\": \"Manager of SecOps\",\n    \"outputConfidence\": \"High\"\n  }\n]\n</examples>\n\n<safety_guidelines>\n1. Your job is to clean up titles, not modify them so they have different meaning.\n2a. If you see a title with a level such as \"Manager\", \"Specialist\", \"Engineer\", \"VP\", then you must ensure that level is retained in your output (in the correct format of the examples).\n2b. For example, for an \"original\" value of \"Security Operations Specialist\", do not change the title to \"Security Engineer\". \"Specialist\" is their level, not \"Engineer\". Making a change like this significantly degrades the output data quality.\n3. Only output \"Security Engineer\" as the title if the \"original\" value contains \"Engineer\".\n</safety_guidelines>\n\nUse these guidelines for confidence levels:\n- High: Very clear semantic match or near-synonym\n- Medium: Related concept or partial match\n- Low: Possible but uncertain connection\n- None: No normalization possible\n\nIMPORTANT: Do not generate fake \"normalized\" titles for \"original\" titles in an attempt to make a match (especially in cases where you don't understand the meaning of the \"original\" title). In other words, it's better to report no match than to force an incorrect match with low confidence.",
+        "hasOutputParser": true
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.6,
+      "position": [
+        280,
+        380
+      ],
+      "id": "fc8a6605-9e82-4793-a847-5fac64374f13",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "12LWvPBAUAiwFGaxq5e_y9iLjZWMwxb3UgR8ABnezOR0",
+          "mode": "list",
+          "cachedResultName": "Data Normalization",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/12LWvPBAUAiwFGaxq5e_y9iLjZWMwxb3UgR8ABnezOR0/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Title Normalizer",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/12LWvPBAUAiwFGaxq5e_y9iLjZWMwxb3UgR8ABnezOR0/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "original": "={{ $json.original }}",
+            "normalized": "={{ $json.normalized }}",
+            "outputConfidence": "={{ $json.outputConfidence }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "original",
+              "displayName": "original",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "normalized",
+              "displayName": "normalized",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "outputConfidence",
+              "displayName": "outputConfidence",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1320,
+        480
+      ],
+      "id": "d7faacdc-0ff1-405a-9649-0c44b9f3b39f",
+      "name": "appendNormalizedDB",
+      "credentials": {
+        "googleApi": {
+          "id": "<your_google_api>",
+          "name": "Google Sheets account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e0684c0d-5456-445d-a469-88cde5ad906b",
+              "name": "Title",
+              "value": "={{ $json.body.original }}",
+              "type": "string"
+            },
+            {
+              "id": "94ef1b79-5293-4724-8fe8-1a09189ca1de",
+              "name": "Row",
+              "value": "={{ $json.body.row }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1040,
+        240
+      ],
+      "id": "511ab170-ba9c-4a80-9faf-fb74bafed02e",
+      "name": "normalizeFields"
+    },
+    {
+      "parameters": {
+        "content": "## Data input + cleaning",
+        "height": 360,
+        "width": 660,
+        "color": 2
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -1320,
+        120
+      ],
+      "typeVersion": 1,
+      "id": "1f81135c-c647-4a1a-8235-3af7880293a5",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## Check for previous matches",
+        "height": 360,
+        "width": 660,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -660,
+        120
+      ],
+      "typeVersion": 1,
+      "id": "d926ddbf-c7da-4985-b17c-66fb5333bcce",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "f0f3dd92-08d8-4b8d-9ff0-773afa91dec4",
+              "leftValue": "={{ $('Merge').item.json.Row }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        360,
+        80
+      ],
+      "id": "1bfb49d1-a3e4-477e-a774-01377e261f55",
+      "name": "removeCheckData"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "9e492a74-0024-45a7-9b2e-2e5d741da5b2",
+              "leftValue": "={{ $json.original }}",
+              "rightValue": "=",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -160,
+        240
+      ],
+      "id": "65fbe6c6-b955-4897-8cc8-0aea2606866b",
+      "name": "matchFound",
+      "notes": "True Branch: Data is has already been matched, insert normalized data.\nFalse Branch: Data has not been matched, proceed to normalization."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "be0d5cc5-dde4-4953-bd85-25eccebfa018",
+              "leftValue": "={{ $('Merge').item.json.Title }}",
+              "rightValue": "={{ $json.original }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        60,
+        80
+      ],
+      "id": "b2038d40-f70f-4d9b-962e-7445ff302de0",
+      "name": "matchConfirmed"
+    },
+    {
+      "parameters": {
+        "content": "## Insert previously matched data ( this is the money saver 🤑 )",
+        "height": 260,
+        "width": 1120,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        0,
+        0
+      ],
+      "typeVersion": 1,
+      "id": "d6af5ba8-1e41-4a17-ba42-729836f43226",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "## Generate new match",
+        "height": 520,
+        "width": 1760,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        0,
+        260
+      ],
+      "typeVersion": 1,
+      "id": "3d63c428-a769-479c-8e65-744de92ee631",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "93cf6ddc-5d99-4da2-8f8a-7d84bcb4f677",
+              "name": "original",
+              "value": "={{ $json.Title }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        60,
+        380
+      ],
+      "id": "db05c896-f1ec-447c-b6b5-c9a39589724a",
+      "name": "cleanForLLM"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "return {\n  json: {\n    original: $json.output.original,\n    normalized: $json.output.normalized,\n    outputConfidence: $json.output.outputConfidence\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        380
+      ],
+      "id": "85da2c3d-2d05-4722-a67b-f6be9a0694af",
+      "name": "structureOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "64289de1-b1d9-4d49-93aa-098d33c7f5d9",
+              "leftValue": "={{ $json.normalized }}",
+              "rightValue": "None",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        880,
+        380
+      ],
+      "id": "fb771a98-4c0f-4344-8601-9f880ead4390",
+      "name": "removeFailures"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "Title, Row",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        -820,
+        240
+      ],
+      "id": "61c87479-3e18-4c48-b026-8dd26ac496f6",
+      "name": "split1"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "original, normalized, outputConfidence",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1100,
+        380
+      ],
+      "id": "4d3a399e-404b-4e9f-b146-f5580c1d7cb0",
+      "name": "split2"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "9883d861-0d4b-4cac-a89b-9a92e58485aa",
+              "name": "Normalized Title",
+              "value": "={{ $json.normalized }}",
+              "type": "string"
+            },
+            {
+              "id": "b5a3d0bf-7938-4719-b1a5-a116bb2c948a",
+              "name": "Row",
+              "value": "={{ $json.Row }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        660,
+        80
+      ],
+      "id": "93355dae-af50-4b07-91d2-906d8e0e2a4a",
+      "name": "insertFormat1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "607f388e-c41d-4b9b-8dd3-a04be0028dc6",
+              "name": "Normalized Title",
+              "value": "={{ $json.normalized }}",
+              "type": "string"
+            },
+            {
+              "id": "02a1b275-10b2-4c39-b817-a81f28192bf4",
+              "name": "=Row",
+              "value": "={{ $('Merge').item.json.Row }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1320,
+        280
+      ],
+      "id": "ce1d1d52-c123-44dc-8594-f1db99daaf3e",
+      "name": "insertFormat2"
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "12LWvPBAUAiwFGaxq5e_y9iLjZWMwxb3UgR8ABnezOR0",
+          "mode": "list",
+          "cachedResultName": "Data Normalization",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/12LWvPBAUAiwFGaxq5e_y9iLjZWMwxb3UgR8ABnezOR0/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 176409656,
+          "mode": "list",
+          "cachedResultName": "People",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/12LWvPBAUAiwFGaxq5e_y9iLjZWMwxb3UgR8ABnezOR0/edit#gid=176409656"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "row_number": "={{ $json.Row }}",
+            "Normalized Title": "={{ $json['Normalized Title'] }}"
+          },
+          "matchingColumns": [
+            "row_number"
+          ],
+          "schema": [
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Company",
+              "displayName": "Company",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Title",
+              "displayName": "Title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Normalized Title",
+              "displayName": "Normalized Title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "ID",
+              "displayName": "ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        880,
+        80
+      ],
+      "id": "f0b9ebc9-8608-4310-8e33-75487e33de90",
+      "name": "insertTitle1",
+      "credentials": {
+        "googleApi": {
+          "id": "<your_google_api>",
+          "name": "Google Sheets account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "12LWvPBAUAiwFGaxq5e_y9iLjZWMwxb3UgR8ABnezOR0",
+          "mode": "list",
+          "cachedResultName": "Data Normalization",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/12LWvPBAUAiwFGaxq5e_y9iLjZWMwxb3UgR8ABnezOR0/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 176409656,
+          "mode": "list",
+          "cachedResultName": "People",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/12LWvPBAUAiwFGaxq5e_y9iLjZWMwxb3UgR8ABnezOR0/edit#gid=176409656"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "row_number": "={{ $json.Row }}",
+            "Normalized Title": "={{ $json['Normalized Title'] }}"
+          },
+          "matchingColumns": [
+            "row_number"
+          ],
+          "schema": [
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Company",
+              "displayName": "Company",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Title",
+              "displayName": "Title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Normalized Title",
+              "displayName": "Normalized Title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "ID",
+              "displayName": "ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1540,
+        280
+      ],
+      "id": "438f9708-7488-433c-a596-92a75961551f",
+      "name": "insertTitle2",
+      "credentials": {
+        "googleApi": {
+          "id": "<your_google_api>",
+          "name": "Google Sheets account 2"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "normalizeFields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "matchFound",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "titleCheck": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "structureOutput",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "normalizeFields": {
+      "main": [
+        [
+          {
+            "node": "split1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "removeCheckData": {
+      "main": [
+        [
+          {
+            "node": "insertFormat1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "matchFound": {
+      "main": [
+        [
+          {
+            "node": "matchConfirmed",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "cleanForLLM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "matchConfirmed": {
+      "main": [
+        [
+          {
+            "node": "removeCheckData",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "cleanForLLM": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "structureOutput": {
+      "main": [
+        [
+          {
+            "node": "removeFailures",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "removeFailures": {
+      "main": [
+        [
+          {
+            "node": "split2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "split1": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "titleCheck",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "split2": {
+      "main": [
+        [
+          {
+            "node": "appendNormalizedDB",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "insertFormat2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "insertFormat1": {
+      "main": [
+        [
+          {
+            "node": "insertTitle1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "insertFormat2": {
+      "main": [
+        [
+          {
+            "node": "insertTitle2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "efadb877-e549-4528-a809-b83b31aebd1f",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "ee074599d574c800ac83bf180c51742b27383905d1283732a9c0b626b4c9f42b"
+  },
+  "id": "r3RmzYh2L3kik1K4",
+  "tags": []
+}

@@ -2,6 +2,8 @@
 ## Overview
 datastore is a simple method for storing data that has been normalized by an LLM, then calling a database of matches prior to querying the LLM.
 
+Video overview: https://www.youtube.com/watch?v=62XJjIcpmDc
+
 For example, I would like to clean this input, so it matches the title naming convention in my CRM.
 
 Input:
